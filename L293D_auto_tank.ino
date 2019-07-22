@@ -1,6 +1,8 @@
+#include <DallasTemperature.h>
+#include <OneWire.h>
 #include <AFMotor.h>
-#include<Servo.h>
- 
+#include <Servo.h>
+
 Servo servo1; //任意のサーボモータークラスを用意。
 
 AF_DCMotor right_motor(4);
@@ -8,21 +10,35 @@ AF_DCMotor left_motor(1);
 
 const int trig = 15; // 出力ピン
 const int echo = 14; // 入力ピン
-const int ir = 4; // 入力ピン
+const int ir = 18; // 入力ピン
 const int servopwm = 9; // Servolib only 9 or 10
+const int DS18B20_PIN = 19;
+
+OneWire oneWire(DS18B20_PIN);
+DallasTemperature sensors(&oneWire);
+
+float temp;
 
 void setup() {
   Serial.begin(9600);
   pinMode(trig,OUTPUT);
   pinMode(echo,INPUT);
-  servo1.attach(servopwm); //デジタル9番ピンをサーボモーターの出力ピンとして設定
+  servo1.attach(servopwm);
+  sensors.begin();
 
   // turn on motor
   right_motor.setSpeed(200);
   left_motor.setSpeed(200);
- 
+
   right_motor.run(RELEASE);
   left_motor.run(RELEASE);
+  sensors.requestTemperatures();
+  temp = sensors.getTempCByIndex(0);
+  Serial.print("Temperature: ");
+  Serial.print(sensors.getTempCByIndex(0));
+  Serial.print((char)223);
+  Serial.println("C");
+  delay(100);
 }
 
 void loop() {
@@ -35,13 +51,13 @@ void loop() {
   left_check();
   ircheck();
   forward_check();
-  
-  moter_forward(90,110,200);
-  
+
+  moter_forward(127,125,130);
+
 }
 
 float measure(){
-  
+
   // 超音波の出力終了
   digitalWrite(trig,LOW);
   delayMicroseconds(1);
@@ -53,7 +69,9 @@ float measure(){
   // 出力した超音波が返って来る時間を計測
   int t = pulseIn(echo,HIGH);
   // 計測した時間と音速から反射物までの距離を計算
-  float distance = t*0.017;
+  float sonic = 331.5 + 0.6*temp;
+  float distance = (float)t * ((sonic*0.0001)/2);
+  //float distance = t*0.017;
   // 計算結果をシリアル通信で出力
   Serial.print(distance);
   Serial.println(" cm");
@@ -88,7 +106,7 @@ void moter_forward(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_back(int L_duty, int R_duty, int keeptime){
-  
+
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(BACKWARD);
@@ -98,7 +116,7 @@ void moter_back(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_left(int L_duty, int R_duty, int keeptime){
-  
+
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(FORWARD);
@@ -108,7 +126,7 @@ void moter_left(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_right(int L_duty, int R_duty, int keeptime){
-  
+
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(BACKWARD);
@@ -118,11 +136,11 @@ void moter_right(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_stop(int keeptime){
-  
+
   right_motor.run(RELEASE);
   left_motor.run(RELEASE);
   delay(keeptime);
-    
+
 }
 
 
@@ -130,60 +148,60 @@ void right_check(){
 
   servo1.write(45); //right
   delay(300);
-  
+
   float r_cm = measure();
-    
+
   if(r_cm < 19){
       moter_stop(10);
-      moter_left(50,60,200);
+      moter_left(150,150,15);
   }
 }
 
 
 void forward_check(){
-  
-  servo1.write(90); //forward
+
+  servo1.write(87); //forward
   delay(300);
 
   float distance = measure();
-  
+
   if (distance < 13){
       avoid();
   }
 }
 
 void left_check(){
-  
-  servo1.write(135); //left
+
+  servo1.write(134); //left
   delay(300);
-  
-  float l_cm = measure(); 
-    
+
+  float l_cm = measure();
+
   if(l_cm < 19){
      moter_stop(10);
-     moter_right(50,60,200);
+     moter_right(150,150,15);
   }
 }
 
 void avoid(){
- 
-  moter_stop(100);
-  moter_back(60,70,1000);
-  moter_stop(100);
+
+  moter_stop(80);
+  moter_back(150,150,600);
+  moter_stop(80);
   servo1.write(0); //right
   delay(500);
   float r_cm = measure();
-  servo1.write(180); //left
+  servo1.write(177); //left
   delay(500);
   float l_cm = measure(); //forward
-  servo1.write(90); //forward
+  servo1.write(87); //forward
   delay(300);
 
   if(r_cm > l_cm)  {
-      moter_right(60,70,1000);
+      moter_right(160,160,300);
   }
   else{
-      moter_left(60,70,1000);
+      moter_left(160,160,300);
   }
-    
+
 }
