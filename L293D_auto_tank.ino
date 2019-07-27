@@ -2,7 +2,7 @@
 #include <OneWire.h>
 #include <AFMotor.h>
 #include <Servo.h>
-
+ 
 Servo servo1; //任意のサーボモータークラスを用意。
 
 AF_DCMotor right_motor(4);
@@ -23,20 +23,20 @@ void setup() {
   Serial.begin(9600);
   pinMode(trig,OUTPUT);
   pinMode(echo,INPUT);
-  servo1.attach(servopwm);
+  servo1.attach(servopwm); 
   sensors.begin();
 
   // turn on motor
   right_motor.setSpeed(200);
   left_motor.setSpeed(200);
-
+ 
   right_motor.run(RELEASE);
   left_motor.run(RELEASE);
   sensors.requestTemperatures();
   temp = sensors.getTempCByIndex(0);
   Serial.print("Temperature: ");
   Serial.print(sensors.getTempCByIndex(0));
-  Serial.print((char)223);
+  //Serial.print((char)223);
   Serial.println("C");
   delay(100);
 }
@@ -51,13 +51,13 @@ void loop() {
   left_check();
   ircheck();
   forward_check();
-
+  
   moter_forward(127,125,130);
-
+  
 }
 
 float measure(){
-
+  
   // 超音波の出力終了
   digitalWrite(trig,LOW);
   delayMicroseconds(1);
@@ -87,8 +87,9 @@ float measure(){
 void ircheck(){
   int irresult;
   irresult = analogRead(ir)  ;   // IRセンサーから読込む
-  Serial.print(irresult) ;    // シリアルモニターに表示させる
-  Serial.println(" irresult");
+  Serial.print("irresult:");
+  Serial.println(irresult) ;    // シリアルモニターに表示させる
+
   if (irresult < 100){
       avoid();
   }
@@ -96,7 +97,7 @@ void ircheck(){
 
 
 void moter_forward(int L_duty, int R_duty, int keeptime){
-
+  Serial.println("Forward");
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(FORWARD);
@@ -106,7 +107,7 @@ void moter_forward(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_back(int L_duty, int R_duty, int keeptime){
-
+  Serial.println("Backward");
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(BACKWARD);
@@ -116,7 +117,7 @@ void moter_back(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_left(int L_duty, int R_duty, int keeptime){
-
+  Serial.println("Left");
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(FORWARD);
@@ -126,7 +127,7 @@ void moter_left(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_right(int L_duty, int R_duty, int keeptime){
-
+  Serial.println("Right");
   right_motor.setSpeed(R_duty);
   left_motor.setSpeed(L_duty);
   right_motor.run(BACKWARD);
@@ -136,11 +137,11 @@ void moter_right(int L_duty, int R_duty, int keeptime){
 }
 
 void moter_stop(int keeptime){
-
+  Serial.println("Stop");
   right_motor.run(RELEASE);
   left_motor.run(RELEASE);
   delay(keeptime);
-
+    
 }
 
 
@@ -148,9 +149,10 @@ void right_check(){
 
   servo1.write(45); //right
   delay(300);
-
+  Serial.print("Right:");
+  
   float r_cm = measure();
-
+    
   if(r_cm < 19){
       moter_stop(10);
       moter_left(150,150,15);
@@ -159,24 +161,24 @@ void right_check(){
 
 
 void forward_check(){
-
-  servo1.write(87); //forward
+  
+  servo1.write(83); //forward
   delay(300);
-
+  Serial.print("Forward:");
   float distance = measure();
-
+  
   if (distance < 13){
       avoid();
   }
 }
 
 void left_check(){
-
+  
   servo1.write(134); //left
   delay(300);
-
-  float l_cm = measure();
-
+  Serial.print("Left:");
+  float l_cm = measure(); 
+    
   if(l_cm < 19){
      moter_stop(10);
      moter_right(150,150,15);
@@ -184,17 +186,19 @@ void left_check(){
 }
 
 void avoid(){
-
+  Serial.println("Avoid");
   moter_stop(80);
   moter_back(150,150,600);
   moter_stop(80);
   servo1.write(0); //right
   delay(500);
+  Serial.print("Right:");
   float r_cm = measure();
-  servo1.write(177); //left
+  servo1.write(173); //left
   delay(500);
+  Serial.print("Left:");
   float l_cm = measure(); //forward
-  servo1.write(87); //forward
+  servo1.write(83); //forward
   delay(300);
 
   if(r_cm > l_cm)  {
@@ -203,5 +207,5 @@ void avoid(){
   else{
       moter_left(160,160,300);
   }
-
+    
 }
